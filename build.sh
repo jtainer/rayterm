@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc main.c -lraylib -lm -ldl -lrt -lpthread -lGL -lX11
+gcc src/main.c -lraylib -lm -ldl -lrt -lpthread -lGL -lX11
