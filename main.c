@@ -1,3 +1,9 @@
+// 
+// rayterm - terminal emulator made with raylib
+//
+// 2023, Jonathan Tainer
+//
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
