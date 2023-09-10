@@ -2,6 +2,10 @@
 
 Terminal emulator made with raylib. 2023, Jonathan Tainer.
 
-## Features:
+## To Do:
 
-- [ ] Finish writing README
+- [x] Render monospace text to the screen and handle key presses
+- [ ] Execute shell in a new process
+- [ ] Pipe stdin and stdout of shell into parent process (terminal)
+- [ ] Handle most common escape sequences necessary for TUI apps like vim
+- [ ] Add graphical settings menu, CRT shader, etc
