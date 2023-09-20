@@ -4,13 +4,14 @@
 // 2023, Jonathan Tainer
 //
 
+#define _XOPEN_SOURCE 600
+
 #include <stdlib.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <signal.h>
-#include <poll.h>
 #include <raylib.h>
 #include <raymath.h>
 
@@ -23,11 +24,7 @@ int get_pos_idx(vec2i, int);
 
 int main() {
 
-	// Create pipes to redirect stdin and stdout of shell
-	int infd[2];
-	int outfd[2];
-	pipe(infd);
-	pipe(outfd);
+	int master = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	// Create child process to run shell
 	int child_pid = fork();
@@ -35,91 +32,79 @@ int main() {
 		return(-1);
 	}
 	if (child_pid == 0) { // Child process
-		close(STDOUT_FILENO);
-		close(STDIN_FILENO);
-		dup2(outfd[0], STDIN_FILENO);
-		dup2(infd[1], STDOUT_FILENO);
-		close(infd[0]);
-		close(infd[1]);
-		close(outfd[0]);
-		close(outfd[1]);
 
-		const char cmd[] = "bash";
-		char* const arg[] = { "bash", "\0" };
+		// Connect to slave terminal device
+		unlockpt(master);
+		grantpt(master);
+		int slave = open(ptsname(master), O_RDWR | O_NONBLOCK);
+		if (slave < 0) {
+			return 0;
+		}
+
+		close(STDIN_FILENO);
+		close(STDOUT_FILENO);
+		close(STDERR_FILENO);
+
+		dup2(slave, STDIN_FILENO);
+		dup2(slave, STDOUT_FILENO);
+		dup2(slave, STDERR_FILENO);
+
+		const char cmd[] = "/bin/bash";
+		char* const arg[] = { "/bin/bash", NULL };
 		execvp(cmd, arg);
+		printf("Failed to run shell\n");
 		return -1;
 	}
 
-	// Parent process
-//	close(outfd[0]);
-//	close(infd[1]);
-
-	int cols = 64;
-	int rows = 24;
+	int cols = 192;
+	int rows = 54;
 
 	char** line = malloc(sizeof(char*) * rows);
 	for (int i = 0; i < rows; i++) {
 		line[i] = malloc(cols + 1);
-		memset(line[i], ' ', cols);
+		memset(line[i], 0, cols);
 		line[i][cols] = 0;
 	}
 	
 	vec2i cursor_pos = { 0, 0 };
 	
-	int window_width = 640;
-	int window_height = 480;
+	int window_width = 3840;
+	int window_height = 2160;
 	const char window_title[] = "Terminal Emulator";
 	
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_ALWAYS_RUN);
 	InitWindow(window_width, window_height, window_title);
-	SetTargetFPS(60);
+	SetTargetFPS(120);
 
-	Font font_ttf = LoadFontEx("fonts/Flexi_IBM_VGA_True.ttf", 20, 0, 250);
+	Font font_ttf = LoadFontEx("fonts/Flexi_IBM_VGA_True.ttf", 40, 0, 250);
 
 	Rectangle char_dim = font_ttf.recs[0];
 
 	while (!WindowShouldClose()) {
-/*		int keycode = 0;
+		int keycode = 0;
 		while (keycode = GetCharPressed()) {
-			switch (keycode) {
-			case KEY_UP:
-				cursor_pos.y--;
-				break;
-			case KEY_DOWN:
-				cursor_pos.y++;
-				break;
-			case KEY_LEFT:
-				cursor_pos.x--;
-				break;
-			case KEY_RIGHT:
-				cursor_pos.x++;
-				break;
-			default:
-				line[cursor_pos.y][cursor_pos.x] = keycode;
-				cursor_pos.x++;
-				if (cursor_pos.x >= cols) {
-					cursor_pos.x = 0;
-					cursor_pos.y++;
-				}
-				break;
-			}
-		}
-*/
-
-		if (IsKeyPressed(KEY_ENTER)) {
-			write(outfd[1], "\n", 1);
-			close(outfd[1]);
+			write(master, &keycode, 1);
 		}
 		
 
-		struct pollfd poll_ctrl = { infd[0], POLLIN, 0 }; 
-		int poll_res = 0;
-		while (1) {
-			poll_res = poll(&poll_ctrl, 1, 10);
-			if ((poll_res > 0) && (poll_ctrl.revents & POLLIN))
-				read(infd[0], &line[0][cursor_pos.x++], 1);
-			else
-				break;
+		char rxbyte = 0;
+		int count = read(master, &rxbyte, 1);
+		if (count > 0) {
+			if (rxbyte == '\n') {
+				cursor_pos.y += 1;
+			}
+			else if (rxbyte == '\r') {
+				cursor_pos.x = 0;
+			}
+			else {
+				line[cursor_pos.y][cursor_pos.x] = rxbyte;
+				cursor_pos.x += 1;
+				if (cursor_pos.x >= cols) {
+					cursor_pos.y++;
+					cursor_pos.x = 0;
+				}
+			}
+
 		}
 
 		int cursor_idx = get_pos_idx(cursor_pos, cols);
@@ -143,6 +128,7 @@ int main() {
 	free(line);
 
 	kill(child_pid, SIGKILL);
+	close(master);
 
 	return 0;
 }
