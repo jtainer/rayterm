@@ -15,6 +15,8 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#include "keymap.h"
+
 typedef struct vec2i {
 	int x;
 	int y;
@@ -81,9 +83,14 @@ int main() {
 	Rectangle char_dim = font_ttf.recs[0];
 
 	while (!WindowShouldClose()) {
+
+		// Send alphanumeric characters to shell
 		int keycode = 0;
-		while (keycode = GetCharPressed()) {
-			write(master, &keycode, 1);
+		while (keycode = GetKeyPressed()) {
+			const char* str = IsKeyDown(KEY_LEFT_SHIFT) ? keymap[keycode].str1 : keymap[keycode].str0;
+			const int len = strlen(str);
+			printf("keycode = %d\tstr = %s\n", keycode, str);
+			write(master, str, len);
 		}
 		
 
