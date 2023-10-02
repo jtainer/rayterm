@@ -7,6 +7,6 @@
 #ifndef KEYMAP_H
 #define KEYMAP_H
 
-const char* 
+const char* get_key_seq(int keycode, int shifted);
 
 #endif

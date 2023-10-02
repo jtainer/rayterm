@@ -4,7 +4,6 @@
 // 2023, Jonathan Tainer
 //
 
-#define KEYMAP_DEF
 #include "keymap.h"
 
 struct char_sequence {
@@ -272,7 +271,7 @@ static const struct char_sequence keymap[] = {
 	{ "",	"",	0 },	/* 254		------		*/
 	{ "",	"",	0 },	/* 255		------		*/
 	{ "\e",	"\e",	0 },	/* 256		Escape		*/
-	{ "\r\n","\r\n",2 },	/* 257		Enter		*/
+	{ "\n","\n",2 },	/* 257		Enter		*/
 	{ "\t",	"\t",	1 },	/* 258		Tab		*/
 	{ "\b",	"\b",	1 },	/* 259		Backspace	*/
 	{ "\e[2~","\e[2~",4 },	/* 260		Insert		*/
@@ -367,3 +366,8 @@ static const struct char_sequence keymap[] = {
 	{ "",	"",	0 },	/* 349		------		*/
 	
 };
+
+const char* get_key_seq(int keycode, int shifted) {
+	const char* str = shifted ? keymap[keycode].str1 : keymap[keycode].str0;
+	return str;
+}

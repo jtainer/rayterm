@@ -70,15 +70,15 @@ int main() {
 	
 	vec2i cursor_pos = { 0, 0 };
 	
-	int window_width = 3840;
-	int window_height = 2160;
+	int window_width = 1920;
+	int window_height = 1080;
 	const char window_title[] = "Terminal Emulator";
 	
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_ALWAYS_RUN);
 	InitWindow(window_width, window_height, window_title);
 	SetTargetFPS(120);
 
-	Font font_ttf = LoadFontEx("fonts/Flexi_IBM_VGA_True.ttf", 40, 0, 250);
+	Font font_ttf = LoadFontEx("fonts/Flexi_IBM_VGA_True.ttf", 20, 0, 250);
 
 	Rectangle char_dim = font_ttf.recs[0];
 
@@ -87,7 +87,7 @@ int main() {
 		// Send alphanumeric characters to shell
 		int keycode = 0;
 		while (keycode = GetKeyPressed()) {
-			const char* str = IsKeyDown(KEY_LEFT_SHIFT) ? keymap[keycode].str1 : keymap[keycode].str0;
+			const char* str = get_key_seq(keycode, IsKeyDown(KEY_LEFT_SHIFT));
 			const int len = strlen(str);
 			printf("keycode = %d\tstr = %s\n", keycode, str);
 			write(master, str, len);
