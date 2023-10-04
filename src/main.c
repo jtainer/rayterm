@@ -95,8 +95,8 @@ int main() {
 		
 
 		char rxbyte = 0;
-		int count = read(master, &rxbyte, 1);
-		if (count > 0) {
+		int count = 0;
+		while ((count = read(master, &rxbyte, 1)) > 0) {
 			if (rxbyte == '\n') {
 				cursor_pos.y += 1;
 			}
@@ -111,7 +111,6 @@ int main() {
 					cursor_pos.x = 0;
 				}
 			}
-
 		}
 
 		int cursor_idx = get_pos_idx(cursor_pos, cols);
