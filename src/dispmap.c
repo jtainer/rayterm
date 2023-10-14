@@ -44,14 +44,28 @@ void shell_disp_byte(char byte) {
 		
 		// Beginning of escape sequence
 		if (byte == '\033') {
+
+			// MSG_ESCAPE if statement will catch this and buffer the byte
 			shell_msg_state = MSG_ESCAPE;
 			memset(shell_msg_buf, 0, SHELL_MSG_LEN_MAX);
 			shell_msg_len = 0;
 		}
 
 		// Single byte control codes
-		else if (byte >= 0x07 && byte <= 0x1B) {
-			
+		else if (byte >= 0x07 && byte <= 0x0D) {
+			switch (byte) {
+			case 0x07:
+				break;
+			case 0x08:
+				break;
+			case 0x09:
+				break;
+			case 0x0A:
+				break;
+			case 0x0C:
+				break;
+
+			}
 		}
 
 		// Display character normally
@@ -82,7 +96,9 @@ void shell_disp_byte(char byte) {
 
 		// Final byte
 		else if (byte >= 0x40 && byte <= 0x7E) {
+			// Process escape sequence
 			
+			shell_msg_state = MSG_LITEERAL;
 		}
 	}
 }
