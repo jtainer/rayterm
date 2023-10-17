@@ -4,7 +4,7 @@
 // 2023, Jonathan Tainer
 //
 
-#include "keymap.h"
+#include "input_map.h"
 
 struct char_sequence {
 	const char* str0;	// non shifted

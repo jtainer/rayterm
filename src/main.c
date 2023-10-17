@@ -15,7 +15,7 @@
 #include <raylib.h>
 #include <raymath.h>
 
-#include "keymap.h"
+#include "input_map.h"
 
 typedef struct vec2i {
 	int x;
