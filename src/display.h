@@ -12,9 +12,15 @@ typedef struct Vec2i {
 } Vec2i;
 
 typedef struct Display {
-	Vec2i size;	// Number of columns and rows (doesnt count null char at end of row)
+	// Number of visible columns and rows indicated by size.
+	// Row strings are actually 1 byte longer than size.x to store null char.
+	Vec2i size;
+	
+	// Cursor position in character grid
 	Vec2i cursor;
-	char** data;	// Access characters by data[row_index][column_index]
+	
+	// Characters are accessed by data[row_idx][col_idx]
+	char** data;
 } Display;
 
 Display DisplayLoad(int width, int height);
