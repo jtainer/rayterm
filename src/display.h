@@ -1,5 +1,5 @@
 // 
-// Terminal emulator object
+// Character display for terminal emulator
 //
 // 2023, Jonathan Tainer
 //
@@ -7,34 +7,34 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-typedef struct Vec2i {
+typedef struct vec2i {
 	int x, y;
-} Vec2i;
+} vec2i;
 
-typedef struct Display {
+typedef struct display {
 	// Number of visible columns and rows indicated by size.
 	// Row strings are actually 1 byte longer than size.x to store null char.
-	Vec2i size;
+	vec2i size;
 	
 	// Cursor position in character grid
-	Vec2i cursor;
+	vec2i cursor;
 	
 	// Characters are accessed by data[row_idx][col_idx]
 	char** data;
-} Display;
+} display_t;
 
-Display DisplayLoad(int width, int height);
+display_t display_load(int width, int height);
 
-void DisplayUnload(Display* display);
+void display_unload(display_t* display);
 
-void DisplayPrintChar(Display* display, char c);
+void display_print_char(display_t* display, char c);
 
-void DisplaySetCursorPos(Display* display, Vec2i pos);
+void display_set_cursor(display_t* display, vec2i pos);
 
-void DisplayMoveCursor(Display* display, Vec2i offset);
+void display_move_cursor(display_t* display, vec2i offset);
 
-void DisplayLineFeed(Display* display);
+void display_line_feed(display_t* display);
 
-void DisplayCarriageReturn(Display* display);
+void display_carriage_return(display_t* display);
 
 #endif

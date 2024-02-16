@@ -1,18 +1,18 @@
 // 
-// Terminal emulator object
+// Character display for terminal emulator
 //
 // 2023, Jonathan Tainer
 //
 
-#include "terminal.h"
+#include "display.h"
 #include <stdlib.h>
 #include <string.h>
 
-static void DisplayScroll(Display*);
-static void CursorIncrementCol(Display*);
-static void CursorIncrementRow(Display*);
+static void display_scroll(display_t*);
+static void cursor_increment_col(display_t*);
+static void cursor_increment_row(display_t*);
 
-static void DisplayScroll(Display* display) {
+static void display_scroll(display_t* display) {
 	// Clear top row
 	memset(display->data[0], 0, sizeof(char) * display->size.x);
 
@@ -34,26 +34,26 @@ static void DisplayScroll(Display* display) {
 	}
 }
 
-static void CursorIncrementCol(Display* display) {
+static void cursor_increment_col(display_t* display) {
 	if (display->cursor.x < display->size.x) {
 		display->cursor.x++;
 	}
 	else {
 		display->cursor.x = 0;
-		CursorIncrementRow(display);
+		cursor_increment_row(display);
 	}
 }
 
-static void CursorIncrementRow(Display* display) {
+static void cursor_increment_row(display_t* display) {
 	display->cursor.y++;
 	if (display->cursor.y >= display->size.y) {
-		DisplayScroll(display);
+		display_scroll(display);
 	}
 
 }
 
-Display DisplayLoad(int width, int height) {
-	Display display = { 0 };
+display_t display_load(int width, int height) {
+	display_t display = { 0 };
 	display.size.x = width;
 	display.size.y = height;
 	display.data = malloc(sizeof(char*) * height);
@@ -64,22 +64,22 @@ Display DisplayLoad(int width, int height) {
 	return display;
 }
 
-void DisplayUnload(Display* display) {
+void display_unload(display_t* display) {
 	for (int i = 0; i < display->size.y; i++) {
 		free(display->data[i]);
 	}
 	free(display->data);
-	*display = (Display) { 0 };
+	*display = (display_t) { 0 };
 }
 
-void DisplayPrintChar(Display* display, char c) {
+void display_print_char(display_t* display, char c) {
 	int row = display->cursor.y;
 	int col = display->cursor.x;
 	display->data[row][col] = char;
-	DisplayIncrementCol(display);
+	display_increment_col(display);
 }
 
-void DisplaySetCursorPos(Display* display, Vec2i pos) {
+void display_set_cursor(display_t* display, vec2i pos) {
 	// Clamp cursor position inside grid size
 	const int xmin = 0;
 	const int xmax = display->size.x - 1;
@@ -91,15 +91,16 @@ void DisplaySetCursorPos(Display* display, Vec2i pos) {
 	display->cursor.y = (pos.y > ymax) ? ymax : pos.y;
 }
 
-void DisplayMoveCursor(Display* display, Vec2i offset) {
+void display_move_cursor(display_t* display, vec2i offset) {
 	Vec2i pos = { display->cursor.x + offset.x, display->cursor.y + offset.y };
 	DisplaySetCursorPos(display, pos);
 }
 
-void DisplayLineFeed(Display* display) {
-	CursorIncrementRow(display);
+void display_line_feed(display_t* display) {
+	cursor_increment_row(display);
 }
 
-void DisplayCarriageReturn(Display* display) {
+void display_carriage_return(display_t* display) {
 	display->cursor.x = 0;
 }
+
