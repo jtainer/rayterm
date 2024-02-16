@@ -4,7 +4,8 @@
 // 2023, Jonathan Tainer
 //
 
-#include <stdbool.h>
+#include "output_handler.h"
+#include <string.h>
 
 // Static buffer for escape sequences
 // Only buffers output after the beginning of an escape sequence is detected
@@ -37,28 +38,28 @@ static const char* escape_table_format[] = {
 
 };
 
-static void esc_seq_reset() {
-	memset(esc_seq, 0, ESC_SEQ_MAX_LEN + 1);
-	esc_seq_len = 0;
-	in_esc = false;
+static void esc_seq_reset(output_handler_t* handler) {
+	memset(handler->esc_seq, 0, ESC_SEQ_MAX_LEN + 1);
+	handler->esc_seq_len = 0;
+	handler->in_esc = false;
 }
 
-static void esc_seq_append(char c) {
-	if (esc_seq_len < ESC_SEQ_MAX_LEN) {
-		esc_seq[esc_seq_len] = c;
-		esc_seq_len++;
+static void esc_seq_append(output_handler_t* handler, char c) {
+	if (handler->esc_seq_len < ESC_SEQ_MAX_LEN) {
+		handler->esc_seq[handler->esc_seq_len] = c;
+		handler->esc_seq_len++;
 	}
 }
 
 // This will probably be the most complicated part of the entire project
-static void esc_seq_parse() {
+static void esc_seq_parse(output_handler_t* handler) {
 
 }
 
 // This should be called each time a byte is read from the output stream
 // Text is passed to the display without buffering
 // Escape sequences are buffered and parsed internally
-void shell_disp_byte(char byte) {
+void process_output(char byte) {
 
 	if (!in_esc) {
 		// Beginning of escape sequence
