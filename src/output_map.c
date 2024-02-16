@@ -4,15 +4,14 @@
 // 2023, Jonathan Tainer
 //
 
-#include <stdint.h>
+#include <stdbool.h>
 
-// Store shell output in circular buffer
-#define SHELL_MSG_LEN_MAX	256
-static char shell_msg_buf[SHELL_MSG_LEN_MAX+1] = { 0 };
-static int shell_msg_len = 0;
-
-typedef enum msg_state { MSG_LITERAL = 0, MSG_ESCAPE = 1 } msg_state;
-static msg_state shell_msg_state = MSG_LITERAL;
+// Static buffer for escape sequences
+// Only buffers output after the beginning of an escape sequence is detected
+#define ESC_SEQ_MAX_LEN 256
+static char esc_seq[ESC_SEQ_MAX_LEN+1] = { 0 };
+static int esc_seq_len = 0;
+static bool in_esc = false;
 
 static const char* escape_table_exact[] = {
 	"A",	// Cursor up 1 cell
@@ -23,32 +22,49 @@ static const char* escape_table_exact[] = {
 };
 
 static const char* escape_table_format[] = {
-	"%dA",	// Cursor up n cells
-	"%dB",	// Cursor down n cells
-	"%dC",	// Cursor forward n cells
-	"%dD",	// Cursor back n cells
-	"%dE",	// Move cursor to beginning of line, n lines down
-	"%dF",	// Move cursor to beginning of line, n lines up
-	"%dG",	//
-	"%dH",
-	"%dJ",
+	" %d A",	// Cursor up n cells
+	" %d B",	// Cursor down n cells
+	" %d C",	// Cursor forward n cells
+	" %d D",	// Cursor back n cells
+	" %d E",	// Move cursor to beginning of line, n lines down
+	" %d F",	// Move cursor to beginning of line, n lines up
+	" %d G",	// Move cursor to column n (default 1)
+	" %d ; %d H",	// Move cursor to row n, column m
+	" %d J",
 	"%dK",
 	"%dS",
 	"%dT",
 
 };
 
+static void esc_seq_reset() {
+	memset(esc_seq, 0, ESC_SEQ_MAX_LEN + 1);
+	esc_seq_len = 0;
+	in_esc = false;
+}
+
+static void esc_seq_append(char c) {
+	if (esc_seq_len < ESC_SEQ_MAX_LEN) {
+		esc_seq[esc_seq_len] = c;
+		esc_seq_len++;
+	}
+}
+
+// This will probably be the most complicated part of the entire project
+static void esc_seq_parse() {
+
+}
+
+// This should be called each time a byte is read from the output stream
+// Text is passed to the display without buffering
+// Escape sequences are buffered and parsed internally
 void shell_disp_byte(char byte) {
 
-	if (shell_msg_state == MSG_LITERAL) {
-		
+	if (!in_esc) {
 		// Beginning of escape sequence
 		if (byte == '\033') {
-
-			// MSG_ESCAPE if statement will catch this and buffer the byte
-			shell_msg_state = MSG_ESCAPE;
-			memset(shell_msg_buf, 0, SHELL_MSG_LEN_MAX);
-			shell_msg_len = 0;
+			in_esc = true;
+			esc_seq_append(byte);
 		}
 
 		// Single byte control codes
@@ -74,12 +90,11 @@ void shell_disp_byte(char byte) {
 		}
 	}
 	
-	if (shell_msg_state == MSG_ESCAPE) {
+	// in_esc == true
+	else {
+		esc_seq_append(byte);
 
-		shell_msg_buf[shell_msg_len] = byte;
-		shell_msg_len++;
-
-		// CSI
+		// Control Sequence Introducer
 		if (byte == '\033' || byte == '[') {
 			
 		}
@@ -98,7 +113,7 @@ void shell_disp_byte(char byte) {
 		else if (byte >= 0x40 && byte <= 0x7E) {
 			// Process escape sequence
 			
-			shell_msg_state = MSG_LITEERAL;
+			esc_seq_reset();
 		}
 	}
 }
