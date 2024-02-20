@@ -4,15 +4,9 @@
 // 2023, Jonathan Tainer
 //
 
-#include "output_handler.h"
+#include "output_parser.h"
+#include <stdlib.h>
 #include <string.h>
-
-// Static buffer for escape sequences
-// Only buffers output after the beginning of an escape sequence is detected
-#define ESC_SEQ_MAX_LEN 256
-static char esc_seq[ESC_SEQ_MAX_LEN+1] = { 0 };
-static int esc_seq_len = 0;
-static bool in_esc = false;
 
 static const char* escape_table_exact[] = {
 	"A",	// Cursor up 1 cell
@@ -38,34 +32,46 @@ static const char* escape_table_format[] = {
 
 };
 
-static void esc_seq_reset(output_handler_t* handler) {
-	memset(handler->esc_seq, 0, ESC_SEQ_MAX_LEN + 1);
-	handler->esc_seq_len = 0;
-	handler->in_esc = false;
+static void esc_seq_reset(output_parser_t* parser) {
+	memset(parser->buf, 0, parser->max + 1);
+	parser->len = 0;
+	parser->in_esc = false;
 }
 
-static void esc_seq_append(output_handler_t* handler, char c) {
-	if (handler->esc_seq_len < ESC_SEQ_MAX_LEN) {
-		handler->esc_seq[handler->esc_seq_len] = c;
-		handler->esc_seq_len++;
+static void esc_seq_append(output_parser_t* parser, char c) {
+	if (parser->len < parser->max) {
+		parser->buf[parser->len] = c;
+		parser->len++;
 	}
 }
 
 // This will probably be the most complicated part of the entire project
-static void esc_seq_parse(output_handler_t* handler) {
+static void esc_seq_parse(output_parser_t* parser) {
 
+}
+
+output_parser_t create_output_parser(int buf_size) {
+	output_handler_t parser = { 0 };
+	parser.buf = calloc(buf_size+1, 1);
+	if (parser.buf) parser.max = buf_size;
+	return parser;
+}
+
+void destroy_output_parser(output_parser_t* parser) {
+	free(parser->buf);
+	*parser = (output_parser_t) { 0 };
 }
 
 // This should be called each time a byte is read from the output stream
 // Text is passed to the display without buffering
 // Escape sequences are buffered and parsed internally
-void process_output(char byte) {
+void parse_output(output_parser_t* parser, char byte) {
 
-	if (!in_esc) {
+	if (!parser->in_esc) {
 		// Beginning of escape sequence
 		if (byte == '\033') {
-			in_esc = true;
-			esc_seq_append(byte);
+			parser->in_esc = true;
+			esc_seq_append(parser, byte);
 		}
 
 		// Single byte control codes
@@ -93,7 +99,7 @@ void process_output(char byte) {
 	
 	// in_esc == true
 	else {
-		esc_seq_append(byte);
+		esc_seq_append(parser, byte);
 
 		// Control Sequence Introducer
 		if (byte == '\033' || byte == '[') {
@@ -114,7 +120,7 @@ void process_output(char byte) {
 		else if (byte >= 0x40 && byte <= 0x7E) {
 			// Process escape sequence
 			
-			esc_seq_reset();
+			esc_seq_reset(parser);
 		}
 	}
 }
