@@ -65,10 +65,10 @@ void destroy_output_parser(output_parser_t* parser) {
 // This should be called each time a byte is read from the output stream
 // Text is passed to the display without buffering
 // Escape sequences are buffered and parsed internally
-void parse_output(output_parser_t* parser, char byte) {
+void parse_output(output_parser_t* parser, display_t* display, char byte) {
 
 	if (!parser->in_esc) {
-		// Beginning of escape sequence
+		// First character of CSI
 		if (byte == '\033') {
 			parser->in_esc = true;
 			esc_seq_append(parser, byte);
@@ -78,16 +78,29 @@ void parse_output(output_parser_t* parser, char byte) {
 		else if (byte >= 0x07 && byte <= 0x0D) {
 			switch (byte) {
 			case 0x07:
+				// Bell
 				break;
 			case 0x08:
+				// Backspace
+				display_move_cursor(display, (vec2i) { -1, 0 });
 				break;
-			case 0x09:
+			case 0x09: 
+				// Tab
+				// TODO: should always align cursor to multiples of 8, not just add 8
+				display_move_cursor(display, (vec2i) { 0, 8 });
 				break;
 			case 0x0A:
+				// Line feed
+				display_line_feed(display);
+				display_carriage_return(display);
 				break;
 			case 0x0C:
+				// Form feed
 				break;
-
+			case 0x0D:
+				// Carriage return
+				display_carriage_return(display);
+				break;
 			}
 		}
 

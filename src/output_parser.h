@@ -25,7 +25,7 @@ void destroy_output_parser(output_parser_t* parser);
 // This should be called each time a byte is read from the output stream
 // Text is passed to the display without buffering
 // Escape sequences are buffered and parsed internally
-void parse_output(output_parser_t* parser, char byte);
+void parse_output(output_parser_t* parser, display_t* display, char byte);
 
 #endif
 
