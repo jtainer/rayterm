@@ -23,7 +23,7 @@ static void display_scroll(display_t* display) {
 	}
 
 	// Top row rolls over to bottom of screen
-	display->data[display->size - 1] = tmp;
+	display->data[display->size.y - 1] = tmp;
 
 	// Cursor follows the line as it scrolls
 	if (display->cursor.y > 0) {
@@ -57,7 +57,7 @@ display_t display_load(int width, int height) {
 	display.size.x = width;
 	display.size.y = height;
 	display.data = malloc(sizeof(char*) * height);
-	for (int i = 0; i < rows, i++) {
+	for (int i = 0; i < height; i++) {
 		display.data[i] = malloc(sizeof(char) * (width + 1));
 		memset(display.data[i], 0, width + 1);
 	}
@@ -75,8 +75,8 @@ void display_unload(display_t* display) {
 void display_print_char(display_t* display, char c) {
 	int row = display->cursor.y;
 	int col = display->cursor.x;
-	display->data[row][col] = char;
-	display_increment_col(display);
+	display->data[row][col] = c;
+	cursor_increment_col(display);
 }
 
 void display_set_cursor(display_t* display, vec2i pos) {
@@ -92,8 +92,8 @@ void display_set_cursor(display_t* display, vec2i pos) {
 }
 
 void display_move_cursor(display_t* display, vec2i offset) {
-	Vec2i pos = { display->cursor.x + offset.x, display->cursor.y + offset.y };
-	DisplaySetCursorPos(display, pos);
+	vec2i pos = { display->cursor.x + offset.x, display->cursor.y + offset.y };
+	display_set_cursor(display, pos);
 }
 
 void display_line_feed(display_t* display) {
