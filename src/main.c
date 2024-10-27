@@ -50,10 +50,8 @@ int main() {
 		// Set the pseudoterminal to act as the controlling terminal
 		ioctl(slave, TIOCSCTTY, 0);
 
-		close(STDIN_FILENO);
-		close(STDOUT_FILENO);
-		close(STDERR_FILENO);
-
+		// Redirect STDIN, STDOUT, and STDERR to the pseudoterminal
+		// Each of the file descriptors being redirected are implicitly closed by dup2
 		dup2(slave, STDIN_FILENO);
 		dup2(slave, STDOUT_FILENO);
 		dup2(slave, STDERR_FILENO);
