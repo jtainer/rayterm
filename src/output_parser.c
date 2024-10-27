@@ -7,6 +7,7 @@
 #include "output_parser.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 static const char* escape_table_exact[] = {
 	"A",	// Cursor up 1 cell
@@ -36,6 +37,7 @@ static void esc_seq_reset(output_parser_t* parser) {
 	memset(parser->buf, 0, parser->max + 1);
 	parser->len = 0;
 	parser->in_esc = false;
+	parser->esc_type = SEQ_NULL;
 }
 
 static void esc_seq_append(output_parser_t* parser, char c) {
@@ -51,7 +53,7 @@ static void esc_seq_parse(output_parser_t* parser) {
 }
 
 output_parser_t create_output_parser(int buf_size) {
-	output_handler_t parser = { 0 };
+	output_parser_t parser = { 0 };
 	parser.buf = calloc(buf_size+1, 1);
 	if (parser.buf) parser.max = buf_size;
 	return parser;
@@ -106,7 +108,7 @@ void parse_output(output_parser_t* parser, display_t* display, char byte) {
 
 		// Display character normally
 		else {
-			
+			display_print_char(display, byte);
 		}
 	}
 	
@@ -114,26 +116,48 @@ void parse_output(output_parser_t* parser, display_t* display, char byte) {
 	else {
 		esc_seq_append(parser, byte);
 
-		// Control Sequence Introducer
-		if (byte == '\033' || byte == '[') {
-			
+		// Figure out what kind of escape code it is
+		if (parser->esc_type == SEQ_NULL) {
+			// First byte of escape code
+			if (byte == '\033') {
+				
+			}
+
+			// Second byte of control sequence introducer
+			else if (byte == '[') {
+				parser->esc_type = SEQ_CSI;
+			}
+
+			// Second byte of operating system command sequence introducer
+			else if (byte == ']') {
+				parser->esc_type = SEQ_OSC;
+			}
+		}
+		else if (parser->esc_type == SEQ_CSI) {
+			// Parameter bytes
+			if (byte >= 0x30 && byte <= 0x3F) {
+
+			}
+			// Intermediate bytes
+			else if (byte >= 0x20 && byte <= 0x2F) {
+
+			}
+			// Final byte
+			else if (byte >= 0x40 && byte <= 0x7E) {
+				// Handle escape sequence here
+
+				esc_seq_reset(parser);
+			}
+
+		}
+		else if (parser->esc_type == SEQ_OSC) {
+			// End of OSC sequence
+			if (byte == 0x07 || strstr(parser->buf, "\033\\")) {
+				// Handle escape sequence here
+
+				esc_seq_reset(parser);
+			}
 		}
 
-		// Parameter bytes
-		else if (byte >= 0x30 && byte <= 0x3F) {
-		
-		}
-
-		// Intermediate bytes
-		else if (byte >= 0x20 && byte <= 0x2F) {
-		
-		}
-
-		// Final byte
-		else if (byte >= 0x40 && byte <= 0x7E) {
-			// Process escape sequence
-			
-			esc_seq_reset(parser);
-		}
 	}
 }

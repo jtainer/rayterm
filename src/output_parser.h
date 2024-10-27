@@ -12,11 +12,18 @@
 
 #define ESC_SEQ_MAX_LEN 256
 
+typedef enum {
+	SEQ_NULL = 0,
+	SEQ_CSI,
+	SEQ_OSC
+} sequence_type_t;
+
 typedef struct output_parser {
 	char* buf;
 	int max;
 	int len;
-	bool in_esc = false;
+	bool in_esc;
+	sequence_type_t esc_type;
 } output_parser_t;
 
 output_parser_t create_output_parser(int buf_size);
