@@ -17,11 +17,8 @@
 #include <raymath.h>
 
 #include "input_map.h"
-
-typedef struct vec2i {
-	int x;
-	int y;
-} vec2i;
+#include "output_parser.h"
+#include "display.h"
 
 int get_pos_idx(vec2i, int);
 
@@ -63,80 +60,67 @@ int main() {
 		return -1;
 	}
 
+	// Create text display buffer
 	int cols = 192;
 	int rows = 54;
+	display_t display = display_load(cols, rows);
 
-	char** line = malloc(sizeof(char*) * rows);
-	for (int i = 0; i < rows; i++) {
-		line[i] = malloc(cols + 1);
-		memset(line[i], 0, cols);
-		line[i][cols] = 0;
-	}
-	
-	vec2i cursor_pos = { 0, 0 };
-	
+	// Initialize output parser (handles escape sequences etc)
+	output_parser_t output_parser = create_output_parser(256);
+
+	// Initialize raylib for keyboard input and rendering
 	int window_width = 1920;
 	int window_height = 1080;
 	const char window_title[] = "Terminal Emulator";
-	
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_ALWAYS_RUN);
 	InitWindow(window_width, window_height, window_title);
 	SetTargetFPS(120);
 
+	// Chose a monospace font that looks nice, need to make this configurable in the future
 	Font font_ttf = LoadFontEx("fonts/Flexi_IBM_VGA_True.ttf", 20, 0, 250);
-
 	Rectangle char_dim = font_ttf.recs[0];
 
 	while (!WindowShouldClose()) {
 
-		// Send alphanumeric characters to shell
+		// Map key presses to the corresponding characters or control sequences
 		int keycode = 0;
 		while (keycode = GetKeyPressed()) {
 			const char* str = get_key_seq(keycode, IsKeyDown(KEY_LEFT_SHIFT));
 			const int len = strlen(str);
 			printf("keycode = %d\tstr = %s\n", keycode, str);
+
+			// Send remapped inputs to the shell
 			write(master, str, len);
 		}
 		
-
+		// Read in any data received from the shell and update the text display buffer
 		char rxbyte = 0;
 		int count = 0;
 		while ((count = read(master, &rxbyte, 1)) > 0) {
-			if (rxbyte == '\n') {
-				cursor_pos.y += 1;
-			}
-			else if (rxbyte == '\r') {
-				cursor_pos.x = 0;
-			}
-			else {
-				line[cursor_pos.y][cursor_pos.x] = rxbyte;
-				cursor_pos.x += 1;
-				if (cursor_pos.x >= cols) {
-					cursor_pos.y++;
-					cursor_pos.x = 0;
-				}
-			}
+			parse_output(&output_parser, &display, rxbyte);
 		}
 
-		int cursor_idx = get_pos_idx(cursor_pos, cols);
-
+		// Render everything
 		BeginDrawing();
 		ClearBackground(BLACK);
-		DrawRectangle(cursor_pos.x * char_dim.width, cursor_pos.y * char_dim.height, char_dim.width, char_dim.height, WHITE);
+		// Draw cursor
+		DrawRectangle(
+			display.cursor.x * char_dim.width,
+			display.cursor.y * char_dim.height,
+			char_dim.width, char_dim.height, WHITE
+		);
+		// Draw the text buffer
 		for (int i = 0; i < rows; i++) {
 			Vector2 line_origin = { 0, i * char_dim.height };
-			DrawTextEx(font_ttf, line[i], line_origin, (float)font_ttf.baseSize, 0, LIME);
+			DrawTextEx(font_ttf, display.data[i], line_origin, (float)font_ttf.baseSize, 0, LIME);
 		}
 		EndDrawing();
 	}
 
+	display_unload(&display);
+	destroy_output_parser(&output_parser);
 
 	CloseWindow();
-
-	for (int i = 0; i < rows; i++) {
-		free(line[i]);
-	}
-	free(line);
 
 	kill(child_pid, SIGKILL);
 	close(master);
