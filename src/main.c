@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 #include <stdio.h>
 #include <string.h>
 #include <raylib.h>
@@ -42,6 +43,12 @@ int main() {
 		if (slave < 0) {
 			return 0;
 		}
+
+		// Create a new session (has no controlling terminal)
+		setsid();
+		
+		// Set the pseudoterminal to act as the controlling terminal
+		ioctl(slave, TIOCSCTTY, 0);
 
 		close(STDIN_FILENO);
 		close(STDOUT_FILENO);
