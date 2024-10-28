@@ -87,7 +87,6 @@ int main() {
 		while (keycode = GetKeyPressed()) {
 			const char* str = get_key_seq(keycode, IsKeyDown(KEY_LEFT_SHIFT));
 			const int len = strlen(str);
-			printf("keycode = %d\tstr = %s\n", keycode, str);
 
 			// Send remapped inputs to the shell
 			write(master, str, len);
@@ -112,7 +111,7 @@ int main() {
 		// Draw the text buffer
 		for (int i = 0; i < rows; i++) {
 			Vector2 line_origin = { 0, i * char_dim.height };
-			DrawTextEx(font_ttf, display.data[i], line_origin, (float)font_ttf.baseSize, 0, LIME);
+			DrawTextEx(font_ttf, display.data[i], line_origin, (float)font_ttf.baseSize, 0, ORANGE);
 		}
 		EndDrawing();
 	}
