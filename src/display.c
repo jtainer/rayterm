@@ -14,7 +14,7 @@ static void cursor_increment_row(display_t*);
 
 static void display_scroll(display_t* display) {
 	// Clear top row
-	memset(display->data[0], 0, sizeof(char) * display->size.x);
+	memset(display->data[0], ' ', sizeof(char) * display->size.x);
 
 	// Rotate all lines up by 1
 	char* tmp = display->data[0];
@@ -59,7 +59,8 @@ display_t display_load(int width, int height) {
 	display.data = malloc(sizeof(char*) * height);
 	for (int i = 0; i < height; i++) {
 		display.data[i] = malloc(sizeof(char) * (width + 1));
-		memset(display.data[i], 0, width + 1);
+		memset(display.data[i], ' ', width + 1);
+		display.data[i][width] = 0;
 	}
 	return display;
 }
@@ -85,10 +86,12 @@ void display_set_cursor(display_t* display, vec2i pos) {
 	const int xmax = display->size.x - 1;
 	const int ymin = 0;
 	const int ymax = display->size.y - 1;
-	display->cursor.x = (pos.x < xmin) ? xmin : pos.x;
-	display->cursor.x = (pos.x > xmax) ? xmax : pos.x;
-	display->cursor.y = (pos.y < ymin) ? ymin : pos.y;
-	display->cursor.y = (pos.y > ymax) ? ymax : pos.y;
+	pos.x = (pos.x < xmin) ? xmin : pos.x;
+	pos.x = (pos.x > xmax) ? xmax : pos.x;
+	pos.y = (pos.y < ymin) ? ymin : pos.y;
+	pos.y = (pos.y > ymax) ? ymax : pos.y;
+	display->cursor.x = pos.x;
+	display->cursor.y = pos.y;
 }
 
 void display_move_cursor(display_t* display, vec2i offset) {
@@ -102,5 +105,23 @@ void display_line_feed(display_t* display) {
 
 void display_carriage_return(display_t* display) {
 	display->cursor.x = 0;
+}
+
+void display_clear_line(display_t* display) {
+	int row = display->cursor.y;
+	int col = display->cursor.x;
+	memset(display->data[row], ' ', sizeof(char) * display->size.x);
+}
+
+void display_clear_line_forward(display_t* display) {
+	int row = display->cursor.y;
+	int col = display->cursor.x;
+	memset(display->data[row] + col, ' ', sizeof(char) * (display->size.x - col));
+}
+
+void display_clear_line_backward(display_t* display) {
+	int row = display->cursor.y;
+	int col = display->cursor.x;
+	memset(display->data[row], ' ', sizeof(char) * (col + 1));
 }
 

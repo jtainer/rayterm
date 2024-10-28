@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
+#include <sys/param.h>
 
 static const char* escape_table_exact[] = {
 	"A",	// Cursor up 1 cell
@@ -37,7 +39,7 @@ static void esc_seq_reset(output_parser_t* parser) {
 	memset(parser->buf, 0, parser->max + 1);
 	parser->len = 0;
 	parser->in_esc = false;
-	parser->esc_type = SEQ_NULL;
+	parser->esc_fmt = SEQ_NULL;
 }
 
 static void esc_seq_append(output_parser_t* parser, char c) {
@@ -50,6 +52,42 @@ static void esc_seq_append(output_parser_t* parser, char c) {
 // This will probably be the most complicated part of the entire project
 static void esc_seq_parse(output_parser_t* parser) {
 
+}
+
+static ansi_sequence_t parse_ansi_sequence(const char* str) {
+	ansi_sequence_t seq = { 0 };
+	int n_params = 0;
+
+	if (str == NULL) return seq;
+
+	char byte = 0;
+	while (byte = *str) {
+		if (isdigit(byte)) {
+			// Convert string to integer
+			char* endptr = NULL;
+			int val = strtol(str, &endptr, 10);
+			if (n_params < ANSI_SEQ_MAX_PARAMS) {
+				seq.param[n_params] = val;
+			}
+			// Advance pointer to next non-number character
+			str = endptr;
+		}
+		else if (byte == ';') {
+			// Parameters are delimited by semicolons
+			// Zero space between semicolons indicates the default value for that parameter
+			n_params++;
+			str++;
+		}
+		else if (byte >= 0x40 && byte <= 0x7E) {
+			seq.code = byte;
+			str++;
+		}
+		else {
+			str++;
+		}
+	}
+
+	return seq;
 }
 
 output_parser_t create_output_parser(int buf_size) {
@@ -117,7 +155,7 @@ void parse_output(output_parser_t* parser, display_t* display, char byte) {
 		esc_seq_append(parser, byte);
 
 		// Figure out what kind of escape code it is
-		if (parser->esc_type == SEQ_NULL) {
+		if (parser->esc_fmt == SEQ_NULL) {
 			// First byte of escape code
 			if (byte == '\033') {
 				
@@ -125,15 +163,15 @@ void parse_output(output_parser_t* parser, display_t* display, char byte) {
 
 			// Second byte of control sequence introducer
 			else if (byte == '[') {
-				parser->esc_type = SEQ_CSI;
+				parser->esc_fmt = SEQ_CSI;
 			}
 
 			// Second byte of operating system command sequence introducer
 			else if (byte == ']') {
-				parser->esc_type = SEQ_OSC;
+				parser->esc_fmt = SEQ_OSC;
 			}
 		}
-		else if (parser->esc_type == SEQ_CSI) {
+		else if (parser->esc_fmt == SEQ_CSI) {
 			// Parameter bytes
 			if (byte >= 0x30 && byte <= 0x3F) {
 
@@ -144,13 +182,56 @@ void parse_output(output_parser_t* parser, display_t* display, char byte) {
 			}
 			// Final byte
 			else if (byte >= 0x40 && byte <= 0x7E) {
-				// Handle escape sequence here
+				ansi_sequence_t command = parse_ansi_sequence(parser->buf);
 
+				int n = 0;
+				vec2i offset = { 0 };	
+				switch (command.code) {
+				case 'A': // Cursor up
+					n = MAX(1, command.param[0]);
+					offset.y = -n;
+					display_move_cursor(display, offset);
+					break;
+				case 'B':
+					n = MAX(1, command.param[0]);
+					offset.y = n;
+					display_move_cursor(display, offset);
+					break;
+				case 'C':
+					n = MAX(1, command.param[0]);
+					offset.x = n;
+					display_move_cursor(display, offset);
+					break;
+				case 'D':
+					n = MAX(1, command.param[0]);
+					offset.x = -n;
+					display_move_cursor(display, offset);
+					break;
+				case 'E':
+					break;
+				case 'F':
+					break;
+				case 'G':
+					break;
+				case 'H':
+					break;
+				case 'J':
+					break;
+				case 'K':
+					if (command.param[0] == 0)
+						display_clear_line_forward(display);
+					else if (command.param[0] == 1)
+						display_clear_line_backward(display);
+					else if (command.param[0] == 2)
+						display_clear_line(display);
+					break;
+				}
+				
 				esc_seq_reset(parser);
 			}
 
 		}
-		else if (parser->esc_type == SEQ_OSC) {
+		else if (parser->esc_fmt == SEQ_OSC) {
 			// End of OSC sequence
 			if (byte == 0x07 || strstr(parser->buf, "\033\\")) {
 				// Handle escape sequence here

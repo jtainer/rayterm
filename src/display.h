@@ -37,4 +37,10 @@ void display_line_feed(display_t* display);
 
 void display_carriage_return(display_t* display);
 
+void display_clear_line(display_t* display);
+
+void display_clear_line_forward(display_t* display);
+
+void display_clear_line_backward(display_t* display);
+
 #endif

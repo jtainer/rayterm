@@ -11,19 +11,25 @@
 #include "display.h"
 
 #define ESC_SEQ_MAX_LEN 256
+#define ANSI_SEQ_MAX_PARAMS 4
 
 typedef enum {
 	SEQ_NULL = 0,
 	SEQ_CSI,
 	SEQ_OSC
-} sequence_type_t;
+} sequence_format_t;
+
+typedef struct ansi_sequence {
+	char code;
+	int param[ANSI_SEQ_MAX_PARAMS];
+} ansi_sequence_t;
 
 typedef struct output_parser {
 	char* buf;
 	int max;
 	int len;
 	bool in_esc;
-	sequence_type_t esc_type;
+	sequence_format_t esc_fmt;
 } output_parser_t;
 
 output_parser_t create_output_parser(int buf_size);
