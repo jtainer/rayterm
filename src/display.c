@@ -7,6 +7,7 @@
 #include "display.h"
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 
 static void display_scroll(display_t*);
 static void cursor_increment_col(display_t*);
@@ -99,6 +100,19 @@ void display_move_cursor(display_t* display, vec2i offset) {
 	display_set_cursor(display, pos);
 }
 
+void display_set_cursor_x(display_t* display, int x) {
+	x = MAX(x, 0);
+	x = MIN(x, display->size.x - 1);
+	display->cursor.x = x;
+	
+}
+
+void display_set_cursor_y(display_t* display, int y) {
+	y = MAX(y, 0);
+	y = MIN(y, display->size.y - 1);
+	display->cursor.y = y;
+}
+
 void display_line_feed(display_t* display) {
 	cursor_increment_row(display);
 }
@@ -123,5 +137,23 @@ void display_clear_line_backward(display_t* display) {
 	int row = display->cursor.y;
 	int col = display->cursor.x;
 	memset(display->data[row], ' ', sizeof(char) * (col + 1));
+}
+
+void display_clear(display_t* display) {
+	for (int i = 0; i < display->size.y; i++) {
+		memset(display->data[i], 0, sizeof(char) * display->size.x);
+	}
+}
+
+void display_clear_down(display_t* display) {
+	for (int i = display->cursor.y; i < display->size.y; i++) {
+		memset(display->data[i], 0, sizeof(char) * display->size.x);
+	}
+}
+
+void display_clear_up(display_t* display) {
+	for (int i = 0; i < display->size.y; i++) {
+		memset(display->data[i], 0, sizeof(char) * display->size.x);
+	}
 }
 

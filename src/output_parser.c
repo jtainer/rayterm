@@ -127,7 +127,7 @@ void parse_output(output_parser_t* parser, display_t* display, char byte) {
 			case 0x09: 
 				// Tab
 				// TODO: should always align cursor to multiples of 8, not just add 8
-				display_move_cursor(display, (vec2i) { 0, 8 });
+				display_move_cursor(display, (vec2i) { 8, 0 });
 				break;
 			case 0x0A:
 				// Line feed
@@ -185,37 +185,80 @@ void parse_output(output_parser_t* parser, display_t* display, char byte) {
 				ansi_sequence_t command = parse_ansi_sequence(parser->buf);
 
 				int n = 0;
-				vec2i offset = { 0 };	
+				vec2i offset = { 0 };
+				vec2i position = { 0 };
 				switch (command.code) {
-				case 'A': // Cursor up
+				case 'A':
+					// Move cursor up n cells
 					n = MAX(1, command.param[0]);
 					offset.y = -n;
 					display_move_cursor(display, offset);
 					break;
 				case 'B':
+					// Move cursor down n cells
 					n = MAX(1, command.param[0]);
 					offset.y = n;
 					display_move_cursor(display, offset);
 					break;
 				case 'C':
+					// Move cursor right n cells
 					n = MAX(1, command.param[0]);
 					offset.x = n;
 					display_move_cursor(display, offset);
 					break;
 				case 'D':
+					// Move cursor left n cells
 					n = MAX(1, command.param[0]);
 					offset.x = -n;
 					display_move_cursor(display, offset);
 					break;
 				case 'E':
+					// Move cursor to beginning of line, n lines down
+					n = MAX(1, command.param[0]);
+					offset.y = n;
+					display_move_cursor(display, offset);
+					display_carriage_return(display);
 					break;
 				case 'F':
+					// Move cursor to beginning of line, n lines up
+					n = MAX(1, command.param[0]);
+					offset.y = -n;
+					display_move_cursor(display, offset);
+					display_carriage_return(display);
 					break;
 				case 'G':
+					// Set cursor x position
+					// Value of 1 in the command corresponds to index 0
+					n = MAX(1, command.param[0]) - 1;
+					display_set_cursor_x(display, n);
 					break;
 				case 'H':
+					// Set cursor absolute position
+					// Value of 1 in the command corresponds to index 0
+					position.x = MAX(1, command.param[0]) - 1;
+					position.y = MAX(1, command.param[1]) - 1;
+					display_set_cursor(display, position);
 					break;
 				case 'J':
+					// Clear part of the display
+					// n == 0 (default): clear from cursor to end of screen
+					// n == 1: clear from cursor to beginning of screen
+					// n == 2: clear entire screen and move cursor to top left
+					// n == 3: clear entire screen and delete scrollback buffer
+					if (n == 0) {
+						display_clear_down(display);
+					}
+					else if (n == 1) {
+						display_clear_up(display);
+					}
+					else if (n == 2) {
+						position = (vec2i) { 0, 0 };
+						display_clear(display);
+						display_set_cursor(display, position);
+					}
+					else if (n == 3) {
+						display_clear(display);
+					}
 					break;
 				case 'K':
 					if (command.param[0] == 0)
